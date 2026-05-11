@@ -1,66 +1,78 @@
-# NY Taxi Fare prediction interface
+# taxi-fare-interface — NY Taxi Fare prediction frontend
 
-![](images/snapshot.png)
+![Interface snapshot](images/snapshot.png)
 
-## Setup
+A static, no-framework web interface for the **NY Taxi Fare** prediction API. The user picks pickup/dropoff addresses on a Mapbox-powered map, selects a datetime, and the page calls a prediction API to display the estimated fare.
 
-The interface uses 3 APIs:
+## Tech
 
-- The NY Taxi Fare prediction API
-- The [MapBox Maps API](https://docs.mapbox.com/mapbox-gl-js/api/) to display a map and address autocomplete
-- The [MapBox Directions API](https://docs.mapbox.com/api/navigation/) to display the route on the map
+- Pure HTML + CSS + vanilla JS — no build pipeline, no package manager, no bundler.
+- [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/api/) for the map and address autocomplete (geocoder).
+- [Mapbox Directions API](https://docs.mapbox.com/api/navigation/) to render the driving route between pickup and dropoff.
+- [Flatpickr](https://flatpickr.js.org/) for the datetime picker.
 
-These APIs require credentials and the following steps will guide you to get them and set the interface with.
+The entire app is three files: `index.html`, `style.css`, `script.js`.
 
-### NY Taxi Fare prediction API
+## How `script.js` is wired
 
-Update the `script.js` to get prediction from your own API hosted on GCP (make sure to use `https`, not `http`):
+Five entry-point functions, all called from the bottom of `script.js`:
+
+| Function | What it does |
+|----------|--------------|
+| `displayMap(start, stop)` | Initialises a Mapbox map centred on NYC. When both coordinates are present, fetches a driving route from the Directions API and renders it as a line layer with start/end circle markers. |
+| `pickupAutocomplete()` | Attaches a Mapbox Geocoder to `#pickup`; results land in a hidden `<input>` field. |
+| `dropoffAutocomplete()` | Same, for `#dropoff`. Selecting a result triggers `displayMap`. |
+| `initFlatpickr()` | Attaches a datetime picker to `#pickup_datetime`. |
+| `predict()` | On form submit, assembles a query string from the hidden coordinate fields and `GET`s `taxiFareApiUrl`. The response's `fare` field is rendered in `#predicted-fare`. |
+
+## Configuration
+
+The interface uses three APIs:
+
+1. **NY Taxi Fare prediction API** — for the actual prediction.
+2. **MapBox Maps API** — for the map and geocoder autocomplete.
+3. **MapBox Directions API** — for the route between pickup and dropoff.
+
+### Set your API endpoints
+
+Two values at the top of `script.js` must be set:
 
 ```js
-// script.js
-
-const taxiFareApiUrl = 'https://YOUR_API_URL/predict';
+let taxiFareApiUrl = 'https://YOUR_API_URL/predict';   // must be HTTPS in production
+mapboxgl.accessToken = 'YOUR_MAPBOX_API_ACCESS_TOKEN';
 ```
 
-Hint: alternatively, you may use this Le Wagon Prediction API if you do not have one in production:
+Don't have your own deployed prediction API? Use the Le Wagon hosted one:
 
-`https://taxifare.lewagon.ai/predict`
+```
+https://taxifare.lewagon.ai/predict
+```
 
-_Note: the following setup steps are optional as you can use Mapbox credentials given by Le Wagon_
+### Mapbox token
 
-### MapBox Maps and Directions APIs (optional)
-
-- Go to [MapBox](https://www.mapbox.com/) and create an account
-- Go to your [Account](https://account.mapbox.com/) and grab your `Access Token` then set it into the `script.js`
-
-```js
-//...
-mapboxgl.accessToken = 'YOUR_MAPBOX_API_ACCESS_TOKEN';
-````
+Create an account at [mapbox.com](https://www.mapbox.com/), grab an access token from your [account page](https://account.mapbox.com/), and paste it into `script.js`. Tokens given by Le Wagon also work if available.
 
 ## Local development
 
-To check your setup, run the interface locally with:
 ```bash
 python -m http.server 5001
 ```
 
-Then go to [http://localhost:5001](http://localhost:5001)
+Open <http://localhost:5001>.
 
 ## Deploy on GitHub Pages
 
-Your app is ready to go live!
-
-Create a new branch `gh-pages`:
-
 ```bash
 git checkout -b gh-pages
-```
-
-Deploy your app on GitHub:
-
-```bash
 git push origin gh-pages
 ```
 
-Your app will be visible shortly at `https://YOUR_GITHUB_NICKNAME.github.io/taxi-fare-interface`.
+The app will be live shortly at `https://<your-github-nickname>.github.io/taxi-fare-interface`.
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---------|--------------|
+| Console CORS error | The prediction API endpoint must be HTTPS in production. Check the URL. |
+| `404` on GitHub Pages right after deploy | Wait ~5 minutes — GitHub sometimes needs time to detect `index.html`. |
+| Page loads but predictions silently fail | Browser cache. Open Inspector → Network → disable cache, or try an incognito window. |
